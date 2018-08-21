@@ -1,13 +1,14 @@
 
 ![system](https://github.com/atyenoria/janus-webrtc-gateway-docker/blob/master/system.png "system")
 [![Build Status](https://travis-ci.org/atyenoria/janus-webrtc-gateway-docker.svg?branch=master)](https://travis-ci.org/atyenoria/janus-webrtc-gateway-docker)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1939/badge)](https://bestpractices.coreinfrastructure.org/projects/1939)
  # Introduction
-This is a docker image for Janus Webrtc Gateway. Janus Gateway is still under active development phase. So, as the official docs says, some minor modification of the middleware library versions happens frequently. I try to deal with such a chage as much as I can. If you need any request about this repo, free to contact me.
+This is a docker image for Janus Webrtc Gateway. Janus Gateway is still under active development phase. So, as the official docs says, some minor modification of the middleware library versions happens frequently. I try to deal with such a chage as much as I can. If you need any request about this repo, free to contact me. About the details of setup for this docker image, you should read the official docs https://janus.conf.meetecho.com/index.html carefully. 
 
 # Characteristics
 - libwebsocket 2.2.0, build with LWS_MAX_SMP=1 for single thread processing
 - libsrtp 2.0.0
-- coturn 4.5.0.6
+- coturn 4.5.0.7
 - openresty 1.11.2.3
 - golang 1.7.5 for building boringssl
 - compile with the latest ref count branch for memory racing condition crash
@@ -51,11 +52,11 @@ Event handlers:
 
 # Setup
 ```
-docker build -t atyenoria/janus-gateway-docker .
+docker build --no-cache -t atyenoria/janus-gateway-docker .
 docker run --rm --net=host --name="janus" -it -P -p 80:80 -p 443:443 -p 8088:8088 -p 8004:8004/udp -p 8004:8004 -p 8089:8089 -p 8188:8188 -t atyenoria/janus-gateway-docker /bin/bash
 docker exec -it /bin/bash janus
 ```
-
+You should read the official doc https://janus.conf.meetecho.com/index.html carefully.
 # RTMP -> RTP -> WEBRTC
 ```
 IP=0.0.0.0

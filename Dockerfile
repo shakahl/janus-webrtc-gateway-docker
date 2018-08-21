@@ -109,7 +109,6 @@ RUN cd ~/ffmpeg_sources && \
     --enable-libass \
     --enable-libfdk-aac \
     --enable-libfreetype \
-    --enable-libmp3lame \
     --enable-libopus \
     --enable-libtheora \
     --enable-libvorbis \
@@ -121,7 +120,7 @@ RUN cd ~/ffmpeg_sources && \
     make distclean && \
     hash -r
 
-RUN COTURN="4.5.0.6" && wget https://github.com/coturn/coturn/archive/$COTURN.tar.gz && \
+RUN COTURN="4.5.0.7" && wget https://github.com/coturn/coturn/archive/$COTURN.tar.gz && \
     tar xzvf $COTURN.tar.gz && \
     cd coturn-$COTURN && \
     ./configure && \
@@ -161,6 +160,9 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 
 
+
+# If you want to use the openssl instead of boringssl
+# RUN apt-get update -y && apt-get install -y libssl-dev
 RUN git clone https://boringssl.googlesource.com/boringssl && \
     cd boringssl && \
     sed -i s/" -Werror"//g CMakeLists.txt && \
@@ -176,8 +178,10 @@ RUN git clone https://boringssl.googlesource.com/boringssl && \
     sudo cp build/crypto/libcrypto.a /opt/boringssl/lib/
 
 
-# RUN apt-get update -y && apt-get install -y libssl-dev
 
+
+
+# If you want to change the libnice version, set this.
 # RUN apt-get -y remove libnice-dev
 # RUN apt-get -y update && apt-get install -y gtk-doc-tools
 # RUN LIBNICE="0.1.13" && wget https://github.com/libnice/libnice/archive/$LIBNICE.zip && \
@@ -198,19 +202,20 @@ RUN wget https://github.com/cisco/libsrtp/archive/v2.0.0.tar.gz && \
 
 
 
-RUN GDB="8.0" && wget ftp://sourceware.org/pub/gdb/releases/gdb-$GDB.tar.gz && \
-    tar xzvf gdb-$GDB.tar.gz && \
-    cd gdb-$GDB && \
-    ./configure && \
-    make && \
-    make install
+# RUN GDB="8.0" && wget ftp://sourceware.org/pub/gdb/releases/gdb-$GDB.tar.gz && \
+#     tar xzvf gdb-$GDB.tar.gz && \
+#     cd gdb-$GDB && \
+#     ./configure && \
+#     make && \
+#     make install
 
 
 # ./configure CFLAGS="-fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-lasan"
+
 RUN cd / && git clone https://github.com/meetecho/janus-gateway.git && \
     cd janus-gateway && \
     sh autogen.sh && cd /janus-gateway && \
-    git checkout origin/refcount && \
+    git checkout origin/master && \
     ./configure --enable-post-processing --enable-boringssl --disable-data-channels --disable-rabbitmq --disable-mqtt  --disable-plugin-echotest --disable-unix-sockets --enable-dtls-settimeout \
     --disable-plugin-recordplay --disable-plugin-sip --disable-plugin-videocall --disable-plugin-voicemail --disable-plugin-textroom && \
     make && make install && make configs
