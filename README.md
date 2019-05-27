@@ -3,35 +3,39 @@
 [![Build Status](https://travis-ci.org/atyenoria/janus-webrtc-gateway-docker.svg?branch=master)](https://travis-ci.org/atyenoria/janus-webrtc-gateway-docker)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1939/badge)](https://bestpractices.coreinfrastructure.org/projects/1939)
 
+# How to use
 
+https://www.useloom.com/share/325799006d6f4b64a6ce0662ca3f1d57
 
-# Donation for transcoding developing 
-The reason for fundrasing is that developing transcording demo app is very heavy... But Many people want that!!!!
+```
+1. git clone https://github.com/atyenoria/janus-webrtc-gateway-docker.git && cd janus-webrtc-gateway-docker
+2. make build
+3. make run
+4. star this repository after succeeding. Create the issue if you failed. We will help you as much as possible
+```
+- open in firefox (chrome can't work with http url)
+- use the host having global ip 
 
-My bitcoin Address
-3ESGqXHuaRqFCnAFSvBjJTfiqPc5Kn8xgc
-https://www.blockchain.com/btc/address/3ESGqXHuaRqFCnAFSvBjJTfiqPc5Kn8xgc?sort=0 
-
-
-
-
-# TODO
-- [x] janus docker image
-- [x] janus performance improvement patch
-- [ ] jitsi vide bridge image ( in other repo)
-- [ ] example app for transcording 
-- [ ] demo site for RTMP -> RTP -> WEBRTC
-- [ ] demo site for WEBRTC -> RTP -> RTMP
-- [ ] client video mixing in janus gateway
-- [ ] rtp => HLS with ffmpeg using GPU transcording 
+# Dockerfile Characteristics
+- libwebsocket v3.1.0, build with LWS_MAX_SMP=1, ipv6=true for single thread processing
+- libsrtp v2.2.0
+- ffmpeg 4.0.2 with vpx, libx264, alsa(for headless chrome screen caputreing)
+- coturn v4.5.0.8 in order to test turn, use iceTransportPolicy=relay https://www.w3.org/TR/webrtc/#rtcicetransportpolicy-enum 
+- openresty 1.13.6.1
+- boringssl stable https://boringssl.googlesource.com/boringssl/+/chromium-stable 
+- libnice v0.1.14 https://github.com/libnice/libnice/releases/tag/0.1.14 
+- golang 1.7.5 for building boringssl
+- janus v0.6.2, enable all janus plugins(like videoroom, streaming, audiobridge...etc)
+- libnice from the latest gitlab https://gitlab.freedesktop.org/libnice/libnice  (removing global lock for improving janus gateway)
+- [optional] GDB, Address Sanitizer(optional, see Dockerfile) for getting more info when crashing
+- nginx-rtmp-module and ffmpeg compile for MCU functionalilty experiment. For example, WEBRTC-HLS, DASH, RTMP...etc
+- use --net=host for network performance. If you use docker network, some overhead might appear (ref. https://hub.docker.com/_/consul/)
 
 
 
  # Introduction
 This is a docker image for Janus Webrtc Gateway. Janus Gateway is still under active development phase. So, as the official docs says, some minor modification of the middleware library versions happens frequently. I try to deal with such a chage as much as I can. If you need any request about this repo, free to contact me. About the details of setup for this docker image, you should read the official docs https://janus.conf.meetecho.com/index.html carefully. 
 
-# Janus WebRTC Gateway Stability
-tag v0.4.5 looks stable for my simple test. I will strongly recommend this version. 
 
 # Janus WebRTC Gateway Performance 
 With the latest libnice, janus gateway seems to be great performance. This repo contains this patch(see https://gitlab.freedesktop.org/libnice/libnice/merge_requests/13 )
@@ -39,7 +43,7 @@ https://webrtchacks.com/sfu-load-testing/
 ![load-test](https://github.com/atyenoria/janus-webrtc-gateway-docker/blob/master/load-test.png "load-test")
 (right side janus graph is available for this docker image )
 
-# Janus WebRTC Gateway vs Jitsi Video Bridge(Personal Opinion)
+# [wip]Janus WebRTC Gateway vs Jitsi Video Bridge(Personal Opinion)
 I think that janus is better for webinar(web seminar), and jitsi is better for web conference system. 
 The scalability of the current Jitsi Video Bridge(20181007) is poor because of having no local recording file(I'm not sure of this..).  https://www.youtube.com/watch?v=OHHoqKCjJ0E 
 Jitsi last-n + VP8 simulcasting has the very good performance for web conference https://jitsi.org/wp-content/uploads/2016/12/nossdav2015lastn.pdf 
@@ -47,31 +51,17 @@ For the video format, janus recording is per video streaming, jitsi is for mixed
 From these points, janus is suitable for webinar, jitsi is for web conference.
 Of course, both WebRTC SFU are amazing work!! I'm using both.
 
-
 # [wip]Network benchmarking for preparing WebRTC SFU development
 use iperf, netperf
 
-# Dockerfile Characteristics
-- libwebsocket v3.0.1, build with LWS_MAX_SMP=1, ipv6=true for single thread processing
-- libsrtp v2.2.0
-- coturn v4.5.0.8 in order to test turn, use iceTransportPolicy=relay https://www.w3.org/TR/webrtc/#rtcicetransportpolicy-enum 
-- openresty 1.13.6.1
-- boringssl stable https://boringssl.googlesource.com/boringssl/+/chromium-stable 
-- libnice v0.1.14 https://github.com/libnice/libnice/releases/tag/0.1.14 
-- golang 1.7.5 for building boringssl
-- janus v0.4.5
-- libnice from the latest gitlab https://gitlab.freedesktop.org/libnice/libnice  (removing global lock for improving janus gateway)
-- [optional]GDB, Address Sanitizer(optional, see Dockerfile) for getting more info when crashing
-- nginx-rtmp-module and ffmpeg compile for MCU functionalilty experiment. For example, WEBRTC-HLS, DASH, RTMP...etc
-- use --net=host for network performance. If you use docker network, some overhead might appear (ref. https://hub.docker.com/_/consul/)
-
-# janus ./configure
+# Janus ./configure
 
 ```
 libsrtp version:           2.x
 SSL/crypto library:        BoringSSL
 DTLS set-timeout:          yes
-DataChannels support:      no
+Mutex implementation:      GMutex (native futex on Linux)
+DataChannels support:      yes
 Recordings post-processor: yes
 TURN REST API client:      yes
 Doxygen documentation:     no
@@ -83,17 +73,17 @@ Transports:
     Unix Sockets:          no
     Nanomsg:               no
 Plugins:
-    Echo Test:             no
+    Echo Test:             yes
     Streaming:             yes
-    Video Call:            no
-    SIP Gateway (Sofia):   no
+    Video Call:            yes
+    SIP Gateway (Sofia):   yes
     SIP Gateway (libre):   no
-    NoSIP (RTP Bridge):    no
+    NoSIP (RTP Bridge):    yes
     Audio Bridge:          yes
     Video Room:            yes
-    Voice Mail:            no
-    Record&Play:           no
-    Text Room:             no
+    Voice Mail:            yes
+    Record&Play:           yes
+    Text Room:             yes
     Lua Interpreter:       no
     Duktape Interpreter:   no
 Event handlers:
@@ -103,13 +93,7 @@ Event handlers:
 JavaScript modules:        no
 ```
 
-# Setup
-```
-docker build --no-cache -t atyenoria/janus-gateway-docker .
-docker run --rm --net=host --name="janus" -it -t atyenoria/janus-gateway-docker /bin/bash
-docker exec -it /bin/bash janus
-```
-You should read the official doc https://janus.conf.meetecho.com/index.html carefully.
+
 # RTMP -> RTP -> WEBRTC
 ```
 IP=0.0.0.0
@@ -228,6 +212,20 @@ server {
 }
 
 ```
+
+
+
+# TODO
+- [x] janus docker image
+- [x] janus performance improvement patch
+- [ ] jitsi vide bridge image ( in other repo)
+- [ ] example app for transcording 
+- [ ] demo site for RTMP -> RTP -> WEBRTC
+- [ ] demo site for WEBRTC -> RTP -> RTMP
+- [ ] client video mixing in janus gateway
+- [ ] rtp => HLS with ffmpeg using GPU transcording 
+
+
 
 # Project Contributor  
 Akinori Nakajima

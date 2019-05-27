@@ -14,6 +14,7 @@ RUN apt-get -y update && apt-get install -y libmicrohttpd-dev \
     libogg-dev \
     libini-config-dev \
     libcollection-dev \
+    libconfig-dev \
     pkg-config \
     gengetopt \
     libtool \
@@ -55,15 +56,16 @@ RUN VPX="1.5.0" && cd ~/ffmpeg_sources && \
     make clean
 
 
-# error with janus audiobridge compiling?
-RUN OPUS="1.1.2" && cd ~/ffmpeg_sources && \
+RUN OPUS="1.3" && cd ~/ffmpeg_sources && \
     wget http://downloads.xiph.org/releases/opus/opus-$OPUS.tar.gz && \
     tar xzvf opus-$OPUS.tar.gz && \
     cd opus-$OPUS && \
-    ./configure --prefix="$HOME/ffmpeg_build" --disable-shared && \
+    ./configure --help && \
+    ./configure --prefix="$HOME/ffmpeg_build"  && \
     make && \
     make install && \
     make clean
+
 
 RUN LAME="3.100" && apt-get install -y nasm  && cd ~/ffmpeg_sources && \
     wget http://downloads.sourceforge.net/project/lame/lame/$LAME/lame-$LAME.tar.gz && \
@@ -206,7 +208,7 @@ RUN git clone https://boringssl.googlesource.com/boringssl && \
     sudo cp build/crypto/libcrypto.a /opt/boringssl/lib/
 
 
-RUN LIBWEBSOCKET="3.0.1" && wget https://github.com/warmcat/libwebsockets/archive/v$LIBWEBSOCKET.tar.gz && \
+RUN LIBWEBSOCKET="3.1.0" && wget https://github.com/warmcat/libwebsockets/archive/v$LIBWEBSOCKET.tar.gz && \
     tar xzvf v$LIBWEBSOCKET.tar.gz && \
     cd libwebsockets-$LIBWEBSOCKET && \
     mkdir build && \
@@ -223,16 +225,15 @@ RUN SRTP="2.2.0" && apt-get remove -y libsrtp0-dev && wget https://github.com/ci
 
 
 
-
-# libnice tag: 0.1.14 6bfea0d063fb358a44e8800eae314520a2babd61
+# 8 March, 2019 1 commit 67807a17ce983a860804d7732aaf7d2fb56150ba
 RUN apt-get remove -y libnice-dev libnice10 && \
-    echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list && \
-    apt-get update && \
+    echo "deb http://archive.debian.org/debian jessie-backports main" >> /etc/apt/sources.list && \
+    apt-get -o Acquire::Check-Valid-Until=false update && \
     apt-get install -y gtk-doc-tools libgnutls28-dev -t jessie-backports  && \
     apt-get install -y libglib2.0-0 -t jessie-backports && \
     git clone https://gitlab.freedesktop.org/libnice/libnice.git && \
     cd libnice && \
-    git checkout 5496500b1535d9343fdac2a3408864643fe65d7e && \
+    git checkout 67807a17ce983a860804d7732aaf7d2fb56150ba && \
     bash autogen.sh && \
     ./configure --prefix=/usr && \
     make && \
@@ -257,28 +258,41 @@ RUN COTURN="4.5.0.8" && wget https://github.com/coturn/coturn/archive/$COTURN.ta
 # ./configure CFLAGS="-fsanitize=address -fno-omit-frame-pointer" LDFLAGS="-lasan"
 
 
-RUN cd / && git clone https://github.com/meetecho/janus-gateway.git
-RUN cd /janus-gateway && \
+# datachannel build
+RUN cd / && git clone https://github.com/sctplab/usrsctp.git && cd /usrsctp && \
+    git checkout origin/master && git reset --hard 1c9c82fbe3582ed7c474ba4326e5929d12584005 && \
+    ./bootstrap && \
+    ./configure && \
+    make && make install
+
+
+
+# tag v0.6.2 https://github.com/meetecho/janus-gateway/commit/ddbf37fef43ade61d73173c7661a2449c13582d4
+RUN cd / && git clone https://github.com/meetecho/janus-gateway.git && cd /janus-gateway && \
     sh autogen.sh &&  \
-    git checkout origin/master && git reset --hard 3ff54ec7f4d26817fa000c614762e99bcd6a3da0 && \
+    git checkout origin/master && git reset --hard ddbf37fef43ade61d73173c7661a2449c13582d4 && \ 
     PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
     --enable-post-processing \
     --enable-boringssl \
-    --disable-data-channels \
+    --enable-data-channels \
     --disable-rabbitmq \
     --disable-mqtt \
-    --disable-plugin-echotest \
     --disable-unix-sockets \
     --enable-dtls-settimeout \
-    --disable-plugin-recordplay \
-    --disable-plugin-sip \
-    --disable-plugin-videocall \
-    --disable-plugin-voicemail \
-    --disable-plugin-textroom \
-    --disable-plugin-audiobridge \
-    --disable-plugin-nosip \
-    --disable-all-handlers && \
-    make && make install && make configs
+    --enable-plugin-echotest \
+    --enable-plugin-recordplay \
+    --enable-plugin-sip \
+    --enable-plugin-videocall \
+    --enable-plugin-voicemail \
+    --enable-plugin-textroom \
+    --enable-plugin-audiobridge \
+    --enable-plugin-nosip \
+    --enable-all-handlers && \
+    make && make install && make configs && ldconfig
+
+COPY nginx.conf /usr/local/nginx/nginx.conf
+
+CMD nginx && janus
 
 # RUN apt-get -y install iperf iperf3
 # RUN git clone https://github.com/HewlettPackard/netperf.git && \
